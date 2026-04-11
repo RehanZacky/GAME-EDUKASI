@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Game Edukasi Mengetik</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="background-ornaments"></div>
+  <main class="app">
+    <section id="start-screen" class="screen active">
+      <h1>Game Edukasi Mengetik</h1>
+      <p>Belajar mengetik nama buah dan warna dengan cara seru.</p>
+      
+      <p class="duration-title">Pilih Durasi Permainan:</p>
+      <div class="duration-selector">
+        <label>
+          <input type="radio" name="duration" value="1" checked />
+          <span class="duration-btn">1 Menit</span>
+        </label>
+        <label>
+          <input type="radio" name="duration" value="5" />
+          <span class="duration-btn">5 Menit</span>
+        </label>
+        <label>
+          <input type="radio" name="duration" value="10" />
+          <span class="duration-btn">10 Menit</span>
+        </label>
+      </div>
+
+      <button id="start-btn" class="primary-btn">Mulai Sendiri</button>
+
+      <div class="multiplayer-section">
+        <h3>Bermain 2 Orang (Online)</h3>
+        <p class="status-msg" id="status-msg">Memuat koneksi multiplayer...</p>
+        
+        <div class="multiplayer-actions" style="display: none;" id="multiplayer-actions">
+          <div class="host-box">
+            <button id="host-btn" class="secondary-btn">Buat Ruangan</button>
+            <p id="room-info" style="display:none;">Kode Ruangan Kamu:<br><strong id="room-code">---</strong></p>
+          </div>
+          <div class="join-box">
+            <input type="text" id="join-input" placeholder="Masukkan Kode Teman..." autocomplete="off">
+            <button id="join-btn" class="secondary-btn">Gabung</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="game-screen" class="screen">
+      <header class="game-header">
+        <div class="chip">Waktu: <span id="timer">10:00</span></div>
+        <div class="chip score-chip">Skor: <span id="score">0</span></div>
+        <div class="chip opponent-chip" id="opponent-score-wrapper" style="display: none;">Lawan: <span id="opponent-score">0</span></div>
+      </header>
+
+      <div class="question-card">
+        <p id="question-text" class="question-text">Pertanyaan akan muncul di sini</p>
+        <div id="visual-area" class="visual-area"></div>
+      </div>
+
+      <div id="input-area" class="input-area">
+        <input type="text" id="answer-input" placeholder="Ketik jawabanmu di sini..." autocomplete="off" />
+        <button id="submit-btn" class="primary-btn">Jawab</button>
+      </div>
+      <p id="feedback" class="feedback"></p>
+    </section>
+
+    <section id="end-screen" class="screen">
+      <h2>Permainan Selesai</h2>
+      <p id="winner-text" class="winner-text" style="display:none;"></p>
+      <p>Skor akhir kamu:</p>
+      <p id="final-score" class="final-score">0</p>
+      <p>Skor lawan kamu: <strong id="final-opponent-score" style="display:none;">0</strong></p>
+      <p id="summary" class="summary"></p>
+      <button id="restart-btn" class="primary-btn">Main Lagi</button>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
