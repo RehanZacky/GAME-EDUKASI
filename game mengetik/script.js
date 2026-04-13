@@ -54,6 +54,40 @@ const countries = [
   { name: "Australia", code: "au" }
 ];
 
+const animals = [
+  { name: "Kucing", emoji: "🐱" },
+  { name: "Anjing", emoji: "🐶" },
+  { name: "Sapi", emoji: "🐮" },
+  { name: "Kuda", emoji: "🐴" },
+  { name: "Babi", emoji: "🐷" },
+  { name: "Monyet", emoji: "🐒" },
+  { name: "Gajah", emoji: "🐘" },
+  { name: "Harimau", emoji: "🐅" },
+  { name: "Singa", emoji: "🦁" },
+  { name: "Katak", emoji: "🐸" },
+  { name: "Panda", emoji: "🐼" },
+  { name: "Pinguin", emoji: "🐧" },
+  { name: "Ayam", emoji: "🐔" },
+  { name: "Bebek", emoji: "🦆" },
+  { name: "Ikan", emoji: "🐟" }
+];
+
+const vehicles = [
+  { name: "Mobil", emoji: "🚗" },
+  { name: "Bus", emoji: "🚌" },
+  { name: "Ambulans", emoji: "🚑" },
+  { name: "Truk", emoji: "🚚" },
+  { name: "Sepeda", emoji: "🚲" },
+  { name: "Motor", emoji: "🏍️" },
+  { name: "Kapal", emoji: "🚢" },
+  { name: "Perahu", emoji: "⛵" },
+  { name: "Pesawat", emoji: "✈️" },
+  { name: "Helikopter", emoji: "🚁" },
+  { name: "Roket", emoji: "🚀" },
+  { name: "Kereta", emoji: "🚂" },
+  { name: "Traktor", emoji: "🚜" }
+];
+
 const startScreen = document.getElementById("start-screen");
 const gameScreen = document.getElementById("game-screen");
 const endScreen = document.getElementById("end-screen");
@@ -267,13 +301,15 @@ function setFeedback(message, type = "") {
 
 function generateQuestionSequence() {
   questionSequence = [];
-  const categories = ["fruit", "color", "country"];
+  const categories = ["fruit", "color", "country", "animal", "vehicle"];
   for (let i = 0; i < 500; i++) {
     const category = pickRandom(categories);
     let source;
     if (category === "fruit") source = fruits;
     else if (category === "color") source = colors;
-    else source = countries;
+    else if (category === "country") source = countries;
+    else if (category === "animal") source = animals;
+    else source = vehicles;
     
     const item = pickRandom(source);
     questionSequence.push({ category, item });
@@ -293,11 +329,13 @@ function renderQuestion() {
     item = q.item;
     currentQuestionIndex++;
   } else {
-    const categories = ["fruit", "color", "country"];
+    const categories = ["fruit", "color", "country", "animal", "vehicle"];
     category = pickRandom(categories);
     if (category === "fruit") source = fruits;
     else if (category === "color") source = colors;
-    else source = countries;
+    else if (category === "country") source = countries;
+    else if (category === "animal") source = animals;
+    else source = vehicles;
     
     item = pickRandom(source);
   }
@@ -311,9 +349,15 @@ function renderQuestion() {
   } else if (category === "color") {
     questionTextEl.textContent = "Ini warna apa?";
     visualAreaEl.innerHTML = `<div class="color-box" style="background:${item.code}"></div>`;
-  } else {
+  } else if (category === "country") {
     questionTextEl.textContent = "Bendera negara apa ini?";
     visualAreaEl.innerHTML = `<img src="https://flagcdn.com/w160/${item.code}.png" alt="Bendera" style="width: 140px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); animation: wiggleObj 1.5s ease-in-out infinite;">`;
+  } else if (category === "animal") {
+    questionTextEl.textContent = "Hewan apa ini?";
+    visualAreaEl.innerHTML = `<div class="fruit-emoji" style="border:none; box-shadow:none;">${item.emoji}</div>`;
+  } else if (category === "vehicle") {
+    questionTextEl.textContent = "Kendaraan apa ini?";
+    visualAreaEl.innerHTML = `<div class="fruit-emoji" style="border:none; box-shadow:none;">${item.emoji}</div>`;
   }
 
   // Reset input field
