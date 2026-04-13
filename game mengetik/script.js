@@ -49,7 +49,7 @@ const countries = [
   { name: "Italia", code: "it" },
   { name: "Belanda", code: "nl" },
   { name: "Rusia", code: "ru" },
-  { name: "Brasil", code: "br" },
+  { name: "Brazil", code: "br" },
   { name: "Argentina", code: "ar" },
   { name: "Australia", code: "au" }
 ];
