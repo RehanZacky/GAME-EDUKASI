@@ -23,13 +23,12 @@ const colors = [
   { name: "Hijau", code: "#22c55e" },
   { name: "Kuning", code: "#facc15" },
   { name: "Ungu", code: "#a855f7" },
-  { name: "Oranye", code: "#f97316" },
+  { name: "Oren", code: "#f97316" },
   { name: "Pink", code: "#ec4899" },
   { name: "Coklat", code: "#92400e" },
   { name: "Hitam", code: "#1e293b" },
   { name: "Putih", code: "#f8fafc" },
   { name: "Abu abu", code: "#94a3b8" },
-  { name: "Emas", code: "#eab308" }
 ];
 
 const countries = [
