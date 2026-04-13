@@ -29,6 +29,30 @@ const colors = [
   { name: "Hitam", code: "#1e293b" },
   { name: "Putih", code: "#f8fafc" },
   { name: "Abu abu", code: "#94a3b8" },
+  { name: "Emas", code: "#eab308" }
+];
+
+const countries = [
+  { name: "Indonesia", code: "id" },
+  { name: "Malaysia", code: "my" },
+  { name: "Singapura", code: "sg" },
+  { name: "Jepang", code: "jp" },
+  { name: "Korea Selatan", code: "kr" },
+  { name: "Cina", code: "cn" },
+  { name: "India", code: "in" },
+  { name: "Arab Saudi", code: "sa" },
+  { name: "Palestina", code: "ps" },
+  { name: "Turki", code: "tr" },
+  { name: "Amerika Serikat", code: "us" },
+  { name: "Inggris", code: "gb" },
+  { name: "Prancis", code: "fr" },
+  { name: "Jerman", code: "de" },
+  { name: "Italia", code: "it" },
+  { name: "Belanda", code: "nl" },
+  { name: "Rusia", code: "ru" },
+  { name: "Brasil", code: "br" },
+  { name: "Argentina", code: "ar" },
+  { name: "Australia", code: "au" }
 ];
 
 const startScreen = document.getElementById("start-screen");
@@ -244,16 +268,21 @@ function setFeedback(message, type = "") {
 
 function generateQuestionSequence() {
   questionSequence = [];
+  const categories = ["fruit", "color", "country"];
   for (let i = 0; i < 500; i++) {
-    const askFruit = Math.random() < 0.5;
-    const source = askFruit ? fruits : colors;
+    const category = pickRandom(categories);
+    let source;
+    if (category === "fruit") source = fruits;
+    else if (category === "color") source = colors;
+    else source = countries;
+    
     const item = pickRandom(source);
-    questionSequence.push({ askFruit, item });
+    questionSequence.push({ category, item });
   }
 }
 
 function renderQuestion() {
-  let askFruit, item;
+  let category, item;
 
   if (isMultiplayer) {
     if (currentQuestionIndex >= 500) {
@@ -261,24 +290,31 @@ function renderQuestion() {
       return;
     }
     const q = questionSequence[currentQuestionIndex];
-    askFruit = q.askFruit;
+    category = q.category;
     item = q.item;
     currentQuestionIndex++;
   } else {
-    askFruit = Math.random() < 0.5;
-    const source = askFruit ? fruits : colors;
+    const categories = ["fruit", "color", "country"];
+    category = pickRandom(categories);
+    if (category === "fruit") source = fruits;
+    else if (category === "color") source = colors;
+    else source = countries;
+    
     item = pickRandom(source);
   }
 
   currentCorrectAnswer = item.name;
   totalQuestions += 1;
 
-  questionTextEl.textContent = askFruit ? "Ini buah apa?" : "Ini warna apa?";
-
-  if (askFruit) {
+  if (category === "fruit") {
+    questionTextEl.textContent = "Ini buah apa?";
     visualAreaEl.innerHTML = `<div class="fruit-emoji">${item.emoji}</div>`;
-  } else {
+  } else if (category === "color") {
+    questionTextEl.textContent = "Ini warna apa?";
     visualAreaEl.innerHTML = `<div class="color-box" style="background:${item.code}"></div>`;
+  } else {
+    questionTextEl.textContent = "Bendera negara apa ini?";
+    visualAreaEl.innerHTML = `<img src="https://flagcdn.com/w160/${item.code}.png" alt="Bendera" style="width: 140px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); animation: wiggleObj 1.5s ease-in-out infinite;">`;
   }
 
   // Reset input field
