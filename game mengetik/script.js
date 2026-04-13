@@ -106,15 +106,28 @@ let opponentScore = 0;
 let questionSequence = [];
 let currentQuestionIndex = 0;
 
+function generateShortCode() {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let code = "";
+  for (let i = 0; i < 5; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
 // Setup PeerJS
 function initPeer() {
   const statusMsg = document.getElementById("status-msg");
   
-  peer = new Peer({
+  const myShortCode = generateShortCode();
+  const fullId = "play-" + myShortCode;
+  
+  peer = new Peer(fullId, {
     // Using default public server
   });
 
   peer.on("open", (id) => {
+    window.myShortRoomCode = id.replace("play-", "");
     statusMsg.textContent = "Multiplayer siap! Buat atau gabung ruangan kemari.";
     document.getElementById("multiplayer-actions").style.display = "flex";
   });
@@ -177,17 +190,18 @@ function initHost() {
   isHost = true;
   document.getElementById("status-msg").textContent = "Menunggu teman bergabung...";
   document.getElementById("room-info").style.display = "block";
-  document.getElementById("room-code").textContent = peer.id;
+  document.getElementById("room-code").textContent = window.myShortRoomCode;
   document.getElementById("host-btn").disabled = true;
   document.getElementById("join-btn").disabled = true;
 }
 
 function joinGame() {
-  const joinId = document.getElementById("join-input").value.trim();
+  const joinId = document.getElementById("join-input").value.trim().toUpperCase();
   if (!joinId) return;
 
+  const fullJoinId = "play-" + joinId;
   document.getElementById("status-msg").textContent = "Menghubungkan ke ruang...";
-  connection = peer.connect(joinId);
+  connection = peer.connect(fullJoinId);
   isMultiplayer = true;
 
   connection.on("open", () => {
