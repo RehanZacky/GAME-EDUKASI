@@ -128,7 +128,7 @@ const clothes = [
   { name: "Kacamata", emoji: "👓" },
   { name: "Jaket", emoji: "🧥" },
   { name: "Gaun", emoji: "👗" },
-  { name: "Kaoskaki", emoji: "🧦" }
+  { name: "Kaos kaki", emoji: "🧦" }
 ];
 
 const space = [
