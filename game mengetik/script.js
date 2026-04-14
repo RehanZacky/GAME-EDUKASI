@@ -490,9 +490,19 @@ function setFeedback(message, type = "") {
   feedbackEl.className = `feedback ${type}`.trim();
 }
 
+function getSelectedThemes() {
+  const checkboxes = document.querySelectorAll('.theme-checkbox:checked');
+  const selected = Array.from(checkboxes).map(cb => cb.value);
+  // Default to all if none checked
+  if (selected.length === 0) {
+    return ["fruit", "color", "country", "animal", "vehicle", "bodyPart", "profession", "schoolSupply", "clothes", "space", "food", "math"];
+  }
+  return selected;
+}
+
 function generateQuestionSequence() {
   questionSequence = [];
-  const categories = ["fruit", "color", "country", "animal", "vehicle", "bodyPart", "profession", "schoolSupply", "clothes", "space", "food", "math"];
+  const categories = getSelectedThemes();
   for (let i = 0; i < 500; i++) {
     const category = pickRandom(categories);
     let item;
@@ -538,7 +548,7 @@ function renderQuestion() {
     item = q.item;
     currentQuestionIndex++;
   } else {
-    const categories = ["fruit", "color", "country", "animal", "vehicle", "bodyPart", "profession", "schoolSupply", "clothes", "space", "food", "math"];
+    const categories = getSelectedThemes();
     category = pickRandom(categories);
     if (category === "math") {
       const ops = ["+", "-"];
