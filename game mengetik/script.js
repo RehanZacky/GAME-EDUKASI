@@ -88,6 +88,69 @@ const vehicles = [
   { name: "Traktor", emoji: "🚜" }
 ];
 
+const bodyParts = [
+  { name: "Mata", emoji: "👀" },
+  { name: "Hidung", emoji: "👃" },
+  { name: "Telinga", emoji: "👂" },
+  { name: "Tangan", emoji: "✋" },
+  { name: "Kaki", emoji: "🦶" },
+  { name: "Mulut", emoji: "👄" },
+  { name: "Gigi", emoji: "🦷" },
+  { name: "Lidah", emoji: "👅" }
+];
+
+const professions = [
+  { name: "Dokter", emoji: "👨‍⚕️" },
+  { name: "Polisi", emoji: "👮" },
+  { name: "Guru", emoji: "👨‍🏫" },
+  { name: "Koki", emoji: "👨‍🍳" },
+  { name: "Pilot", emoji: "👨‍✈️" },
+  { name: "Petani", emoji: "👨‍🌾" },
+  { name: "Hakim", emoji: "👨‍⚖️" },
+  { name: "Astronot", emoji: "👨‍🚀" },
+  { name: "Detektif", emoji: "🕵️" }
+];
+
+const schoolSupplies = [
+  { name: "Buku", emoji: "📚" },
+  { name: "Pensil", emoji: "✏️" },
+  { name: "Tas", emoji: "🎒" },
+  { name: "Penggaris", emoji: "📏" },
+  { name: "Gunting", emoji: "✂️" },
+  { name: "Kertas", emoji: "📄" }
+];
+
+const clothes = [
+  { name: "Baju", emoji: "👕" },
+  { name: "Celana", emoji: "👖" },
+  { name: "Sepatu", emoji: "👟" },
+  { name: "Topi", emoji: "🧢" },
+  { name: "Kacamata", emoji: "👓" },
+  { name: "Jaket", emoji: "🧥" },
+  { name: "Gaun", emoji: "👗" },
+  { name: "Kaoskaki", emoji: "🧦" }
+];
+
+const space = [
+  { name: "Bumi", emoji: "🌍" },
+  { name: "Bulan", emoji: "🌙" },
+  { name: "Matahari", emoji: "☀️" },
+  { name: "Bintang", emoji: "⭐" },
+  { name: "Meteor", emoji: "☄️" } // Roket is in vehicles
+];
+
+const foods = [
+  { name: "Susu", emoji: "🥛" },
+  { name: "Roti", emoji: "🍞" },
+  { name: "Eskrim", emoji: "🍦" },
+  { name: "Kue", emoji: "🍰" },
+  { name: "Permen", emoji: "🍬" },
+  { name: "Keju", emoji: "🧀" },
+  { name: "Coklat", emoji: "🍫" },
+  { name: "Pizza", emoji: "🍕" },
+  { name: "Donat", emoji: "🍩" }
+];
+
 const startScreen = document.getElementById("start-screen");
 const lobbyScreen = document.getElementById("lobby-screen");
 const gameScreen = document.getElementById("game-screen");
@@ -429,7 +492,7 @@ function setFeedback(message, type = "") {
 
 function generateQuestionSequence() {
   questionSequence = [];
-  const categories = ["fruit", "color", "country", "animal", "vehicle", "math"];
+  const categories = ["fruit", "color", "country", "animal", "vehicle", "bodyPart", "profession", "schoolSupply", "clothes", "space", "food", "math"];
   for (let i = 0; i < 500; i++) {
     const category = pickRandom(categories);
     let item;
@@ -449,7 +512,13 @@ function generateQuestionSequence() {
       else if (category === "color") source = colors;
       else if (category === "country") source = countries;
       else if (category === "animal") source = animals;
-      else source = vehicles;
+      else if (category === "vehicle") source = vehicles;
+      else if (category === "bodyPart") source = bodyParts;
+      else if (category === "profession") source = professions;
+      else if (category === "schoolSupply") source = schoolSupplies;
+      else if (category === "clothes") source = clothes;
+      else if (category === "space") source = space;
+      else source = foods;
       item = pickRandom(source);
     }
     questionSequence.push({ category, item });
@@ -469,7 +538,7 @@ function renderQuestion() {
     item = q.item;
     currentQuestionIndex++;
   } else {
-    const categories = ["fruit", "color", "country", "animal", "vehicle", "math"];
+    const categories = ["fruit", "color", "country", "animal", "vehicle", "bodyPart", "profession", "schoolSupply", "clothes", "space", "food", "math"];
     category = pickRandom(categories);
     if (category === "math") {
       const ops = ["+", "-"];
@@ -487,7 +556,13 @@ function renderQuestion() {
       else if (category === "color") source = colors;
       else if (category === "country") source = countries;
       else if (category === "animal") source = animals;
-      else source = vehicles;
+      else if (category === "vehicle") source = vehicles;
+      else if (category === "bodyPart") source = bodyParts;
+      else if (category === "profession") source = professions;
+      else if (category === "schoolSupply") source = schoolSupplies;
+      else if (category === "clothes") source = clothes;
+      else if (category === "space") source = space;
+      else source = foods;
       item = pickRandom(source);
     }
   }
@@ -506,12 +581,30 @@ function renderQuestion() {
     visualAreaEl.innerHTML = `<div class="color-box" style="background:${item.code}"></div>`;
   } else if (category === "country") {
     questionTextEl.textContent = "Bendera negara apa ini?";
-    visualAreaEl.innerHTML = `<img src="https://flagcdn.com/w160/${item.code}.png" alt="Bendera" style="width: 140px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); animation: wiggleObj 1.5s ease-in-out infinite;">`;
+    visualAreaEl.innerHTML = `<img src="https://flagcdn.com/w160/${item.code}.png" alt="Bendera" style="width: 140px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); animation: wiggleObj 5s ease-in-out infinite;">`;
   } else if (category === "animal") {
     questionTextEl.textContent = "Hewan apa ini?";
     visualAreaEl.innerHTML = `<div class="fruit-emoji" style="border:none; box-shadow:none;">${item.emoji}</div>`;
   } else if (category === "vehicle") {
     questionTextEl.textContent = "Kendaraan apa ini?";
+    visualAreaEl.innerHTML = `<div class="fruit-emoji" style="border:none; box-shadow:none;">${item.emoji}</div>`;
+  } else if (category === "bodyPart") {
+    questionTextEl.textContent = "Bagian tubuh apa ini?";
+    visualAreaEl.innerHTML = `<div class="fruit-emoji" style="border:none; box-shadow:none;">${item.emoji}</div>`;
+  } else if (category === "profession") {
+    questionTextEl.textContent = "Profesi apa ini?";
+    visualAreaEl.innerHTML = `<div class="fruit-emoji" style="border:none; box-shadow:none;">${item.emoji}</div>`;
+  } else if (category === "schoolSupply") {
+    questionTextEl.textContent = "Alat sekolah apa ini?";
+    visualAreaEl.innerHTML = `<div class="fruit-emoji" style="border:none; box-shadow:none;">${item.emoji}</div>`;
+  } else if (category === "clothes") {
+    questionTextEl.textContent = "Pakaian apa ini?";
+    visualAreaEl.innerHTML = `<div class="fruit-emoji" style="border:none; box-shadow:none;">${item.emoji}</div>`;
+  } else if (category === "space") {
+    questionTextEl.textContent = "Benda luar angkasa apa ini?";
+    visualAreaEl.innerHTML = `<div class="fruit-emoji" style="border:none; box-shadow:none;">${item.emoji}</div>`;
+  } else if (category === "food") {
+    questionTextEl.textContent = "Makanan/minuman apa ini?";
     visualAreaEl.innerHTML = `<div class="fruit-emoji" style="border:none; box-shadow:none;">${item.emoji}</div>`;
   }
 
