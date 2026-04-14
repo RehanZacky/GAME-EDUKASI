@@ -89,6 +89,7 @@ const vehicles = [
 ];
 
 const startScreen = document.getElementById("start-screen");
+const lobbyScreen = document.getElementById("lobby-screen");
 const gameScreen = document.getElementById("game-screen");
 const endScreen = document.getElementById("end-screen");
 
@@ -156,10 +157,12 @@ let currentCorrectAnswer = "";
 
 // Multiplayer Variables
 let peer = null;
-let connection = null;
 let isMultiplayer = false;
 let isHost = false;
-let opponentScore = 0;
+let hostConnections = {}; // Simpan banyak koneksi (kalo host)
+let clientConnection = null; // Koneksi ke host (kalo join)
+let playersInfo = {}; // { peerId: { name: "Host", score: 0 } }
+let myPlayerId = "";
 let questionSequence = [];
 let currentQuestionIndex = 0;
 
@@ -172,12 +175,56 @@ function generateShortCode() {
   return code;
 }
 
+function updateLobbyUI() {
+  const playerCount = Object.keys(playersInfo).length;
+  document.getElementById("lobby-players").textContent = `👥 ${playerCount} / 5 Pemain`;
+  
+  const listEl = document.getElementById("lobby-player-list");
+  if (listEl) {
+    listEl.innerHTML = "";
+    for (let id in playersInfo) {
+      const li = document.createElement("li");
+      li.textContent = playersInfo[id].name + (id === myPlayerId ? " (Kamu)" : "");
+      listEl.appendChild(li);
+    }
+  }
+
+  if (isHost) {
+    if (playerCount >= 2) {
+      document.getElementById("lobby-start-btn").disabled = false;
+      document.getElementById("lobby-status").textContent = "Pemain siap! Bisa menekan Mulai.";
+    } else {
+      document.getElementById("lobby-start-btn").disabled = true;
+      document.getElementById("lobby-status").textContent = "Menunggu teman bergabung...";
+    }
+  }
+}
+
+function updateMultiplayerScoresUI() {
+  const listEl = document.getElementById("multiplayer-scores-list");
+  if (!listEl) return;
+  listEl.innerHTML = "";
+  for (let id in playersInfo) {
+    if (id !== myPlayerId) {
+      const p = document.createElement("div");
+      p.className = "chip";
+      p.textContent = `${playersInfo[id].name}: ${playersInfo[id].score}`;
+      listEl.appendChild(p);
+    }
+  }
+}
+
+function broadcastToClients(data) {
+  for (let id in hostConnections) {
+    hostConnections[id].send(data);
+  }
+}
+
 // Setup PeerJS
 function initPeer() {
   const statusMsg = document.getElementById("status-msg");
-  
-  const myShortCode = generateShortCode();
-  const fullId = "play-" + myShortCode;
+  myPlayerId = generateShortCode();
+  const fullId = "play-" + myPlayerId;
   
   peer = new Peer(fullId, {
     // Using default public server
@@ -191,63 +238,93 @@ function initPeer() {
 
   // Handle incoming connections (when Host receives Join request)
   peer.on("connection", (conn) => {
-    connection = conn;
-    statusMsg.textContent = `Teman terhubung! Memulai permainan...`;
+    if (Object.keys(playersInfo).length >= 5) {
+      conn.send({ type: "ERROR", message: "Ruangan Penuh" });
+      setTimeout(() => conn.close(), 1000);
+      return;
+    }
+    
+    // Add conn
+    hostConnections[conn.peer] = conn;
     isMultiplayer = true;
     
-    // Generate questions for both
-    generateQuestionSequence();
+    const playerName = `Pemain ${Object.keys(playersInfo).length + 1}`;
+    playersInfo[conn.peer] = { name: playerName, score: 0 };
+    
+    updateLobbyUI();
+    
+    // Generate questions just in case it's the first join
+    if (questionSequence.length === 0) generateQuestionSequence();
+    
+    conn.on("open", () => {
+      // Send lobby update to all
+      broadcastToClients({ type: "LOBBY_UPDATE", playersInfo: playersInfo });
+    });
 
-    // Give some time to read before start
-    setTimeout(() => {
-      // Send start signal and sequence
-      const selectedDuration = document.querySelector('input[name="duration"]:checked').value;
-      connection.send({
-        type: "START",
-        sequence: questionSequence,
-        duration: parseInt(selectedDuration)
-      });
-      
-      remainingTime = parseInt(selectedDuration) * 60;
-      startGame(true);
-    }, 1500);
+    conn.on("data", (data) => {
+      if (data.type === "SCORE_UPDATE") {
+        if (playersInfo[conn.peer]) playersInfo[conn.peer].score = data.score;
+        broadcastToClients({ type: "SCORES_UPDATE", playersInfo: playersInfo });
+        updateMultiplayerScoresUI();
+      } else if (data.type === "GAME_OVER") {
+        if (playersInfo[conn.peer]) playersInfo[conn.peer].finished = true;
+      }
+    });
 
-    handleConnectionData();
+    conn.on("close", () => {
+      delete hostConnections[conn.peer];
+      delete playersInfo[conn.peer];
+      updateLobbyUI();
+      broadcastToClients({ type: "LOBBY_UPDATE", playersInfo: playersInfo });
+    });
   });
 
   peer.on('error', (err) => {
     statusMsg.textContent = `Error: ${err.type}`;
+    document.getElementById("lobby-status").textContent = `Koneksi gagal: ${err.type}`;
   });
 }
 
-function handleConnectionData() {
-  connection.on("data", (data) => {
-    if (data.type === "START") {
-      // Receiver side (Joiner)
-      document.getElementById("status-msg").textContent = "Permainan dimulai oleh pembuat ruang!";
+function handleClientConnectionData() {
+  clientConnection.on("data", (data) => {
+    if (data.type === "LOBBY_UPDATE") {
+      playersInfo = data.playersInfo;
+      updateLobbyUI();
+    } else if (data.type === "START") {
+      document.getElementById("lobby-status").textContent = "Permainan segera dimulai...";
       questionSequence = data.sequence;
+      playersInfo = data.playersInfo;
       remainingTime = data.duration * 60;
       setTimeout(() => {
         startGame(true);
       }, 1000);
-    } else if (data.type === "SCORE_UPDATE") {
-      opponentScore = data.score;
-      document.getElementById("opponent-score").textContent = opponentScore;
+    } else if (data.type === "SCORES_UPDATE") {
+      playersInfo = data.playersInfo;
+      updateMultiplayerScoresUI();
     } else if (data.type === "GAME_OVER") {
-      endGame(true); // From peer
+      endGame(true);
+    } else if (data.type === "ERROR") {
+      alert(data.message);
     }
   });
 
-  connection.on("close", () => {
-    document.getElementById("status-msg").textContent = "Teman terputus.";
+  clientConnection.on("close", () => {
+    document.getElementById("status-msg").textContent = "Host terputus.";
+    document.getElementById("lobby-status").textContent = "Host terputus, silakan kembali.";
+    document.getElementById("lobby-start-btn").disabled = true;
   });
 }
 
 function initHost() {
   isHost = true;
-  document.getElementById("status-msg").textContent = "Menunggu teman bergabung...";
-  document.getElementById("room-info").style.display = "block";
-  document.getElementById("room-code").textContent = window.myShortRoomCode;
+  isMultiplayer = true;
+  playersInfo[myPlayerId] = { name: "Host", score: 0 };
+  updateLobbyUI();
+  
+  showScreen(lobbyScreen);
+  document.getElementById("lobby-role").textContent = "Kamu Pembuat Ruangan (Host)";
+  document.getElementById("lobby-room-code").textContent = window.myShortRoomCode;
+  document.getElementById("lobby-start-btn").style.display = "inline-block";
   document.getElementById("host-btn").disabled = true;
   document.getElementById("join-btn").disabled = true;
 }
@@ -258,20 +335,70 @@ function joinGame() {
 
   const fullJoinId = "play-" + joinId;
   document.getElementById("status-msg").textContent = "Menghubungkan ke ruang...";
-  connection = peer.connect(fullJoinId);
+  
+  clientConnection = peer.connect(fullJoinId);
   isMultiplayer = true;
+  
+  // Show lobby right away
+  showScreen(lobbyScreen);
+  document.getElementById("lobby-role").textContent = "Kamu Bergabung dengan Ruangan";
+  document.getElementById("lobby-room-code").textContent = joinId;
+  document.getElementById("lobby-status").textContent = "Mencari teman...";
+  document.getElementById("lobby-start-btn").style.display = "none";
 
-  connection.on("open", () => {
-    document.getElementById("status-msg").textContent = "Terhubung! Menunggu pembuat ruang memulai permainan...";
+  clientConnection.on("open", () => {
+    document.getElementById("lobby-status").textContent = "Terhubung! Menunggu Host...";
     document.getElementById("host-btn").disabled = true;
     document.getElementById("join-btn").disabled = true;
-    
-    handleConnectionData();
+    handleClientConnectionData();
   });
 }
 
 document.getElementById("host-btn").addEventListener("click", initHost);
 document.getElementById("join-btn").addEventListener("click", joinGame);
+
+document.getElementById("lobby-start-btn").addEventListener("click", () => {
+  if (isHost && Object.keys(hostConnections).length > 0) {
+    document.getElementById("lobby-status").textContent = "Memulai Permainan...";
+    const selectedDuration = document.querySelector('input[name="duration"]:checked').value;
+    
+    if (questionSequence.length === 0) generateQuestionSequence();
+    for (let id in playersInfo) { playersInfo[id].score = 0; }
+    
+    // Broadcast start
+    broadcastToClients({
+      type: "START",
+      sequence: questionSequence,
+      playersInfo: playersInfo,
+      duration: parseInt(selectedDuration)
+    });
+    
+    remainingTime = parseInt(selectedDuration) * 60;
+    setTimeout(() => {
+      startGame(true);
+    }, 500);
+  }
+});
+
+document.getElementById("lobby-back-btn").addEventListener("click", () => {
+  // Go back to main menu
+  if (isHost) {
+    for (let id in hostConnections) {
+      hostConnections[id].close();
+    }
+    hostConnections = {};
+  } else if (clientConnection) {
+    clientConnection.close();
+  }
+  
+  playersInfo = {};
+  isMultiplayer = false;
+  isHost = false;
+  document.getElementById("host-btn").disabled = false;
+  document.getElementById("join-btn").disabled = false;
+  document.getElementById("status-msg").textContent = "Multiplayer siap! Buat atau gabung ruangan kemari.";
+  showScreen(startScreen);
+});
 
 window.addEventListener("load", initPeer);
 
@@ -279,6 +406,7 @@ window.addEventListener("load", initPeer);
 
 function showScreen(screen) {
   startScreen.classList.remove("active");
+  lobbyScreen.classList.remove("active");
   gameScreen.classList.remove("active");
   endScreen.classList.remove("active");
   screen.classList.add("active");
@@ -301,17 +429,29 @@ function setFeedback(message, type = "") {
 
 function generateQuestionSequence() {
   questionSequence = [];
-  const categories = ["fruit", "color", "country", "animal", "vehicle"];
+  const categories = ["fruit", "color", "country", "animal", "vehicle", "math"];
   for (let i = 0; i < 500; i++) {
     const category = pickRandom(categories);
-    let source;
-    if (category === "fruit") source = fruits;
-    else if (category === "color") source = colors;
-    else if (category === "country") source = countries;
-    else if (category === "animal") source = animals;
-    else source = vehicles;
-    
-    const item = pickRandom(source);
+    let item;
+    if (category === "math") {
+      const ops = ["+", "-"];
+      const op = pickRandom(ops);
+      let a = Math.floor(Math.random() * 20) + 1;
+      let b = Math.floor(Math.random() * 20) + 1;
+      if (op === "-") {
+        if (a < b) { let temp = a; a = b; b = temp; }
+      }
+      const answer = op === "+" ? a + b : a - b;
+      item = { name: answer.toString(), text: `${a} ${op} ${b}` };
+    } else {
+      let source;
+      if (category === "fruit") source = fruits;
+      else if (category === "color") source = colors;
+      else if (category === "country") source = countries;
+      else if (category === "animal") source = animals;
+      else source = vehicles;
+      item = pickRandom(source);
+    }
     questionSequence.push({ category, item });
   }
 }
@@ -329,21 +469,36 @@ function renderQuestion() {
     item = q.item;
     currentQuestionIndex++;
   } else {
-    const categories = ["fruit", "color", "country", "animal", "vehicle"];
+    const categories = ["fruit", "color", "country", "animal", "vehicle", "math"];
     category = pickRandom(categories);
-    if (category === "fruit") source = fruits;
-    else if (category === "color") source = colors;
-    else if (category === "country") source = countries;
-    else if (category === "animal") source = animals;
-    else source = vehicles;
-    
-    item = pickRandom(source);
+    if (category === "math") {
+      const ops = ["+", "-"];
+      const op = pickRandom(ops);
+      let a = Math.floor(Math.random() * 20) + 1;
+      let b = Math.floor(Math.random() * 20) + 1;
+      if (op === "-") {
+        if (a < b) { let temp = a; a = b; b = temp; }
+      }
+      const answer = op === "+" ? a + b : a - b;
+      item = { name: answer.toString(), text: `${a} ${op} ${b}` };
+    } else {
+      let source;
+      if (category === "fruit") source = fruits;
+      else if (category === "color") source = colors;
+      else if (category === "country") source = countries;
+      else if (category === "animal") source = animals;
+      else source = vehicles;
+      item = pickRandom(source);
+    }
   }
 
   currentCorrectAnswer = item.name;
   totalQuestions += 1;
 
-  if (category === "fruit") {
+  if (category === "math") {
+    questionTextEl.textContent = "Berapa hasilnya?";
+    visualAreaEl.innerHTML = `<div class="fruit-emoji" style="border:none; box-shadow:none; font-family:'Courier New', monospace; font-size:120px; font-weight:bold;">${item.text}</div>`;
+  } else if (category === "fruit") {
     questionTextEl.textContent = "Ini buah apa?";
     visualAreaEl.innerHTML = `<div class="fruit-emoji">${item.emoji}</div>`;
   } else if (category === "color") {
@@ -382,8 +537,14 @@ function handleAnswer() {
     score += SCORE_PER_CORRECT;
     setFeedback("Benar! Hebat!", "success");
     playSound("correct");
-    if (isMultiplayer && connection) {
-      connection.send({ type: "SCORE_UPDATE", score: score });
+    if (isMultiplayer) {
+      if (isHost) {
+        playersInfo[myPlayerId].score = score;
+        broadcastToClients({ type: "SCORES_UPDATE", playersInfo: playersInfo });
+        updateMultiplayerScoresUI();
+      } else if (clientConnection) {
+        clientConnection.send({ type: "SCORE_UPDATE", score: score });
+      }
     }
   } else {
     setFeedback(`Belum tepat. Jawaban benar: ${currentCorrectAnswer}`, "error");
@@ -420,12 +581,11 @@ function startGame(fromMultiplayer = false) {
   }
   
   score = 0;
-  opponentScore = 0;
   totalQuestions = 0;
   currentQuestionIndex = 0;
   
-  document.getElementById("opponent-score").textContent = opponentScore;
   document.getElementById("opponent-score-wrapper").style.display = isMultiplayer ? "block" : "none";
+  if (isMultiplayer) updateMultiplayerScoresUI();
   
   scoreEl.textContent = score;
   timerEl.textContent = formatTime(remainingTime);
@@ -445,34 +605,50 @@ function endGame(fromOpponent = false) {
     timerId = null;
   }
   
-  if (isMultiplayer && !fromOpponent && connection) {
-      connection.send({ type: "GAME_OVER" });
+  if (isMultiplayer && !fromOpponent) {
+      if (isHost) {
+        broadcastToClients({ type: "GAME_OVER" });
+      } else if (clientConnection) {
+        clientConnection.send({ type: "GAME_OVER" });
+      }
   }
 
   finalScoreEl.textContent = String(score);
   
   const winnerText = document.getElementById("winner-text");
+  const finalMultiplayerScores = document.getElementById("final-multiplayer-scores");
+  const finalScoresList = document.getElementById("final-scores-list");
   
   if (isMultiplayer) {
-    document.getElementById("final-opponent-score").parentElement.style.display = "block";
-    document.getElementById("final-opponent-score").textContent = opponentScore;
+    finalMultiplayerScores.style.display = "block";
+    playersInfo[myPlayerId].score = score;
     
+    // Sort scores descending
+    const sortedPlayers = Object.keys(playersInfo).map(id => {
+      return { id, name: playersInfo[id].name, score: playersInfo[id].score };
+    });
+    sortedPlayers.sort((a, b) => b.score - a.score);
+    
+    finalScoresList.innerHTML = "";
+    sortedPlayers.forEach((p, idx) => {
+      const li = document.createElement("li");
+      li.textContent = `${p.name} - ${p.score} poin` + (p.id === myPlayerId ? " (Kamu)" : "");
+      if (idx === 0) li.style.fontWeight = "bold";
+      finalScoresList.appendChild(li);
+    });
+
     winnerText.style.display = "block";
-    if (score > opponentScore) {
+    if (sortedPlayers[0].id === myPlayerId) {
       winnerText.textContent = "🏆 Kamu Menang! 🎉";
-    } else if (score < opponentScore) {
-      winnerText.textContent = "😅 Lawan Menang! Gapapa coba lagi!";
     } else {
-      winnerText.textContent = "🤝 Seri!";
+      winnerText.textContent = "😅 Kamu Kalah! Coba lagi!";
     }
   } else {
-    document.getElementById("final-opponent-score").parentElement.style.display = "none";
+    finalMultiplayerScores.style.display = "none";
     winnerText.style.display = "none";
   }
 
   summaryEl.textContent = `Kamu menjawab ${totalQuestions} soal. Terus latihan supaya makin jago!`;
-  showScreen(endScreen);
-  playSound("win");
   showScreen(endScreen);
   playSound("win");
 

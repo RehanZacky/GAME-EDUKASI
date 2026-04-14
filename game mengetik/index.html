@@ -11,7 +11,7 @@
   <main class="app">
     <section id="start-screen" class="screen active">
       <h1>Game Edukasi Mengetik</h1>
-      <p>Belajar mengetik nama buah, warna, hewan, kendaraan, dan bendera negara.</p>
+      <p>Belajar mengetik nama benda, negara, dan matematika dasar dengan cara seru.</p>
       
       <p class="duration-title">Pilih Durasi Permainan:</p>
       <div class="duration-selector">
@@ -48,12 +48,37 @@
       </div>
     </section>
 
+    <!-- LOBBY SCREEN FOR ONLINE ROOM -->
+    <section id="lobby-screen" class="screen">
+      <h2>Ruang Online</h2>
+      <div class="glass-panel" style="padding: 30px;">
+        <p id="lobby-role" style="font-weight:bold;"></p>
+        <div id="lobby-code-area" style="margin: 20px 0;">
+          <p>Kode Ruangan:</p>
+          <h1 id="lobby-room-code" style="color:var(--accent); font-family:monospace; background:rgba(255,255,255,0.5); padding:10px; border-radius:10px; display:inline-block;">---</h1>
+        </div>
+        <p id="lobby-status" style="font-size:18px; margin-bottom:20px;">Menyiapkan ruangan...</p>
+        <p id="lobby-players" style="font-size:24px; margin-bottom:20px;">👥 1 / 5 Pemain</p>
+        <ul id="lobby-player-list" style="list-style:none; padding:0; margin-bottom:20px; font-weight:bold; color:#475569;">
+        </ul>
+        <button id="lobby-start-btn" class="primary-btn" style="display:none;" disabled>Mulai Pertandingan</button>
+        <br><br>
+        <button id="lobby-back-btn" class="secondary-btn" style="margin-top:10px;">Kembali</button>
+      </div>
+    </section>
+
     <section id="game-screen" class="screen">
       <header class="game-header">
         <div class="chip">Waktu: <span id="timer">10:00</span></div>
-        <div class="chip score-chip">Skor: <span id="score">0</span></div>
-        <div class="chip opponent-chip" id="opponent-score-wrapper" style="display: none;">Lawan: <span id="opponent-score">0</span></div>
+        <div class="chip score-chip">Skormu: <span id="score">0</span></div>
       </header>
+      
+      <div id="opponent-score-wrapper" style="display: none; margin-bottom: 20px; background: rgba(255,255,255,0.6); padding: 10px; border-radius: 12px; font-weight: bold; font-size: 14px;">
+        <p style="margin:0 0 5px 0;">Skor Pemain Lain:</p>
+        <div id="multiplayer-scores-list" style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+          <!-- Skor pemain lain muncul di sini -->
+        </div>
+      </div>
 
       <div class="question-card">
         <p id="question-text" class="question-text">Pertanyaan akan muncul di sini</p>
@@ -72,7 +97,10 @@
       <p id="winner-text" class="winner-text" style="display:none;"></p>
       <p>Skor akhir kamu:</p>
       <p id="final-score" class="final-score">0</p>
-      <p>Skor lawan kamu: <strong id="final-opponent-score" style="display:none;">0</strong></p>
+      <div id="final-multiplayer-scores" style="display:none; margin: 20px 0; padding:15px; background:#f1f5f9; border-radius:10px; text-align:left; max-width:300px; margin-left:auto; margin-right:auto;">
+        <p style="font-weight:bold; margin-bottom:10px;">Peringkat Pemain:</p>
+        <ol id="final-scores-list" style="margin:0; padding-left:20px;"></ol>
+      </div>
       <p id="summary" class="summary"></p>
       <button id="restart-btn" class="primary-btn">Main Lagi</button>
     </section>
