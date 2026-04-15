@@ -18,8 +18,11 @@
     <!-- Halaman Pilih Gambar via Preview -->
     <div id="image-screen" class="container hidden">
         <h1>Pilih Gambar Puzzle</h1>
-        <p>Klik gambar yang ingin kamu mainkan.</p>
+        <p>Klik gambar di bawah atau mainkan dengan gambarmu sendiri!</p>
         <br>
+        <input type="file" id="upload-image" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+        <label for="upload-image" class="main-btn" style="cursor: pointer; display: inline-block; font-size: 1.2em; padding: 10px 20px;">+ Upload Gambar Sendiri</label>
+        <br><br>
         <div class="image-grid" id="image-grid">
             <!-- Data thumbnail gambar akan di-generate via Javascript -->
         </div>

@@ -65,6 +65,19 @@ function startGameWithImage(imageSrc, label) {
     initGame();
 }
 
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const imageUrl = e.target.result;
+            // Memulai game langsung dengan gambar yang diupload
+            startGameWithImage(imageUrl, 'Gambar Sendiri');
+        }
+        reader.readAsDataURL(file);
+    }
+}
+
 function getPolygon(w, h, ox, top, right, bottom, left) {
     // ox adalah "offset" ukuran tonjolan puzzle (misalnya 20px)
     let pts = [];
@@ -146,10 +159,10 @@ function initGame() {
         const originalRow = Math.floor(i / cols);
         const originalCol = i % cols;
         
-        const bgX = (originalCol * pieceWidth) - offset;
-        const bgY = (originalRow * pieceHeight) - offset;
+        const bgPosX = offset - (originalCol * pieceWidth);
+        const bgPosY = offset - (originalRow * pieceHeight);
         
-        piece.style.backgroundPosition = `-${bgX}px -${bgY}px`;
+        piece.style.backgroundPosition = `${bgPosX}px ${bgPosY}px`;
         piece.style.backgroundSize = `${cols * pieceWidth}px ${rows * pieceHeight}px`;
 
         // Bangun logika tonjolan pinggiran puzzle-nya
