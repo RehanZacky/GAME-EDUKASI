@@ -213,6 +213,14 @@ function drop() {
     }
     // Tempatkan potongan di papan yang sedang didrop
     this.appendChild(draggedPiece);
+    
+    // Memberikan efek interaktif "snap" saat dilepas (scale bounce)
+    const p = draggedPiece;
+    p.style.transform = 'scale(1.1)';
+    p.style.transition = 'transform 0.15s ease-out';
+    setTimeout(() => {
+        if(p) p.style.transform = 'scale(1)';
+    }, 150);
 }
 
 // Container samping juga harus dapat menerima kembali puzzle yang dibatalkan
@@ -241,6 +249,42 @@ function checkWin() {
 
     if (isWin && slots.length === cols * rows) {
         message.classList.remove('hidden');
+        fireConfetti();
+    }
+}
+
+function fireConfetti() {
+    const container = document.getElementById('confetti-container');
+    if(!container) return;
+    
+    container.innerHTML = '';
+    const colors = ['#f44336', '#007bff', '#28a745', '#ffc107', '#17a2b8', '#e83e8c', '#6f42c1'];
+    
+    for (let i = 0; i < 150; i++) {
+        setTimeout(() => {
+            const confetti = document.createElement('div');
+            confetti.style.position = 'absolute';
+            confetti.style.width = Math.random() * 8 + 5 + 'px';
+            confetti.style.height = Math.random() * 15 + 10 + 'px';
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.top = '-20px';
+            confetti.style.opacity = Math.random() + 0.5;
+            confetti.style.borderRadius = (Math.random() > 0.5 ? '50%' : '0');
+            confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+            
+            // Animasi turun
+            confetti.style.transition = `top ${Math.random() * 2 + 2}s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform ${Math.random() * 2 + 2}s linear`;
+            container.appendChild(confetti);
+
+            setTimeout(() => {
+                confetti.style.top = '110vh';
+                confetti.style.transform = `rotate(${Math.random() * 720}deg)`;
+            }, 10); // sedikit delay trigger animation
+            
+            // Bersihkan memori usai animasi
+            setTimeout(() => confetti.remove(), 4000);
+        }, i * 20); // Keluarnya mencicil (Air mancur confetti)
     }
 }
 
