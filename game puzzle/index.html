@@ -47,7 +47,7 @@
             <h1 id="lobby-room-code" style="color: #28a745; background: #fff; padding: 10px; border-radius: 10px; display: inline-block;">---</h1>
         </div>
         <p id="lobby-status">Menyiapkan ruangan...</p>
-        <p id="lobby-players" style="font-weight: bold; margin: 15px 0;">Pemain: 1</p>
+        <p id="lobby-players" style="font-weight: bold; margin: 15px 0;">Pemain: 1 / 5</p>
         <button id="lobby-start-btn" class="main-btn" style="background-color: #ffc107; color: black; display: none;" onclick="startOnlineGame()">Mulai Pertandingan</button>
         <br><br>
         <button class="back-btn" onclick="disconnectMultiplayer(); showScreen('start-screen');">Keluar dari Ruang</button>
@@ -81,8 +81,10 @@
         <div id="message" class="hidden">Selamat! Kamu Menang! 🎉</div>
         <div id="gameover-message" class="hidden" style="color: #dc3545; font-size: 2em; font-weight: bold; margin-bottom: 20px;">Waktu Habis! 😢</div>
         
-        <div id="multiplayer-scores" class="hidden" style="margin-bottom: 20px; font-weight: bold; padding: 10px; background: rgba(255,255,255,0.7); border-radius: 10px;">
-            Pemain 1: <span id="p1-score">0</span> | Pemain 2: <span id="p2-score">0</span>
+        <div id="multiplayer-scores" class="hidden" style="margin-bottom: 20px; font-weight: bold; padding: 10px; background: rgba(255,255,255,0.7); border-radius: 10px; min-height: 45px;">
+            <div id="multiplayer-scores-list" style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+                <!-- Dinamis dari JS: Pemain 1: 0 | Pemain 2: 0 -->
+            </div>
         </div>
         
         <div class="game-area">
@@ -99,6 +101,29 @@
             <button class="back-btn" onclick="disconnectMultiplayer(); showScreen('start-screen')">Pilih Gambar Lain / Keluar</button>
         </div>
     </div>
+
+    <!-- Halaman Akhir Game (End Screen, meniru game mengetik) -->
+    <div id="end-screen" class="container hidden">
+        <h1 style="font-size: 3em; margin-bottom: 10px;">Berakhir! 🎉</h1>
+        <p id="winner-text" style="font-size: 2em; color: var(--success); font-weight: bold; margin-bottom: 20px; display: none;"></p>
+        
+        <div style="background: rgba(255,255,255,0.7); border-radius: 12px; padding: 20px; display: inline-block; min-width: 300px; margin-bottom: 20px;">
+            <h2 style="color: var(--text);">Skor Kamu</h2>
+            <div id="final-score" style="font-size: 4em; color: var(--primary); font-weight: bold; margin: 10px 0;">0</div>
+            <p id="summary-text">Terus berlatih biar memecahkan puzzle semakin cepat!</p>
+        </div>
+        
+        <div id="final-multiplayer-scores" style="display:none; margin: 20px auto; padding: 15px; background: #f1f5f9; border-radius: 10px; text-align: left; max-width: 300px;">
+            <h3 style="margin-top: 0; color: var(--text); text-align: center;">Papan Skor Akhir</h3>
+            <ol id="final-scores-list" style="font-size: 1.2em; color: var(--muted); margin: 0; padding-left: 20px;"></ol>
+        </div>
+        
+        <div style="margin-top: 15px;">
+            <button id="end-restart-btn" class="main-btn" onclick="restartFromEndScreen()" style="background-color: var(--primary);">Main Lagi</button>
+            <button class="back-btn" onclick="disconnectMultiplayer(); showScreen('start-screen')" style="margin-left: 10px;">Kembali ke Awal</button>
+        </div>
+    </div>
+    
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="script.js"></script>
 </body>

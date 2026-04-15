@@ -8,7 +8,8 @@ const screens = {
     start: document.getElementById('start-screen'),
     image: document.getElementById('image-screen'),
     game: document.getElementById('game-screen'),
-    lobby: document.getElementById('lobby-screen')
+    lobby: document.getElementById('lobby-screen'),
+    end: document.getElementById('end-screen')
 };
 
 // Daftar gambar yang bisa dibuat puzzle
@@ -55,9 +56,9 @@ function startGameWithImage(imageSrc, label) {
     currentImage = imageSrc;
     levelTitle.textContent = `Bongkar Pasang: ${label}`;
     
-    // Ukuran papan 800x450
-    pieceWidth = 800 / cols;
-    pieceHeight = 450 / rows;
+    // Ukuran papan 600x600 (3x3 grid)
+    pieceWidth = 600 / cols;
+    pieceHeight = 600 / rows;
     
     board.style.gridTemplateColumns = `repeat(${cols}, ${pieceWidth}px)`;
     board.style.gridTemplateRows = `repeat(${rows}, ${pieceHeight}px)`;
@@ -173,20 +174,90 @@ function loadNextArcadeEmoji() {
     }, 1000);
 }
 
-function handleArcadeGameOver() {
-    isArcadeMode = false; // Matikan logic menang arcade
+function handleArcadeGameOver(fromOpponent = false) {
+    if(arcadeTimer) {
+        clearInterval(arcadeTimer);
+        arcadeTimer = null;
+    }
+    isArcadeMode = false;
     document.getElementById('gameover-message').classList.remove('hidden');
     message.classList.add('hidden');
-    piecesContainer.innerHTML = ''; // Hapus sisa puzzle agar tidak bisa ditarik
+    piecesContainer.innerHTML = '';
     
-    // Ganti fungsi tombol Ulangi jadi Lanjut Arcade Baru
-    const restartBtn = document.getElementById('restart-btn');
-    restartBtn.textContent = 'Mulai Arcade Baru';
-    restartBtn.onclick = function() {
+    if (isOnline && !fromOpponent) {
+        // Beritahu teman online bahwa game berakhir
+        if (isHost) {
+            broadcastToClients({ type: 'GAME_OVER' });
+        } else if (conn) {
+            conn.send({ type: 'GAME_OVER' });
+        }
+    }
+    
+    // Tampilkan Layar End Screen ala Game Mengetik
+    // Tunggu sedikit agar sadar kalau waktunya habis
+    setTimeout(() => {
+        showScreen('end-screen');
+        
+        document.getElementById('final-score').textContent = arcadeScore;
+        const winnerText = document.getElementById("winner-text");
+        const finalMultiplayerScores = document.getElementById("final-multiplayer-scores");
+        const finalScoresList = document.getElementById("final-scores-list");
+        
+        if (isOnline) {
+            finalMultiplayerScores.style.display = "block";
+            // Pastikan skor kita terupdate
+            if(playersInfo[myPlayerId]) playersInfo[myPlayerId].score = arcadeScore;
+            
+            // Sort skor menurun
+            const sortedPlayers = Object.keys(playersInfo).map(id => {
+                return { id, name: playersInfo[id].name, score: playersInfo[id].score };
+            });
+            sortedPlayers.sort((a, b) => b.score - a.score);
+            
+            finalScoresList.innerHTML = "";
+            sortedPlayers.forEach((p, idx) => {
+                const li = document.createElement("li");
+                li.textContent = `${p.name} - ${p.score} poin` + (p.id === myPlayerId ? " (Kamu)" : "");
+                if (idx === 0) li.style.color = "var(--success)"; // Hijau buat juara 1
+                finalScoresList.appendChild(li);
+            });
+            
+            winnerText.style.display = "block";
+            if (sortedPlayers.length > 0 && sortedPlayers[0].id === myPlayerId) {
+                winnerText.textContent = "🏆 Kamu Menang! 🎉";
+                fireConfetti();
+            } else {
+                winnerText.textContent = "😅 Kamu Kalah! Semangat!";
+            }
+            
+            // Atur ulang tombol Restart di end screen (Kembali ke Lobby)
+            document.getElementById('end-restart-btn').textContent = "Kembali Ke Ruangan";
+        } else {
+            // Main sendiri
+            finalMultiplayerScores.style.display = "none";
+            winnerText.style.display = "none";
+            document.getElementById('end-restart-btn').textContent = "Main Lagi";
+            fireConfetti();
+            
+            document.getElementById('summary-text').textContent = `Kamu melewati sampai Level ${arcadeLevel}. Terus berlatih!`;
+        }
+    }, 1500);
+}
+
+function restartFromEndScreen() {
+    if (isOnline) {
+        showScreen('lobby-screen');
+        if (isHost) {
+            document.getElementById('lobby-status').textContent = "Pertandingan selesai. Kamu bisa memulai laga ulang!";
+            document.getElementById('lobby-start-btn').disabled = false;
+        } else {
+            document.getElementById('lobby-status').textContent = "Menunggu Host untuk mulai lagi...";
+            document.getElementById('lobby-start-btn').disabled = true;
+        }
+    } else {
+        // Main Sendiri, balik start
         startArcadeMode();
-        restartBtn.textContent = 'Ulangi Puzzle'; // kembalikan text
-        restartBtn.onclick = initGame; // kembalikan logic biasa
-    };
+    }
 }
 
 // Mulai game biasa (Mode Santai / Pilih Gambar / Emoji Acak)
@@ -376,15 +447,17 @@ function checkWin() {
             
             // Tambah skor dan sedikit waktu bonus 
             arcadeScore += 100 * arcadeLevel;
-            myScore = arcadeScore; // Update local online score parameter
-            
-            // Beritahu teman online tentang skor baru kita
-            if(isOnline && conn) {
-                conn.send({ type: 'UPDATE_SCORE', score: myScore });
+            // Beritahu API ttg kita
+            if(isOnline) {
+                playersInfo[myPlayerId].score = arcadeScore;
                 if(isHost) {
-                    document.getElementById('p1-score').textContent = myScore;
-                } else {
-                    document.getElementById('p2-score').textContent = myScore;
+                    // Update Local
+                    updateMultiplayerScoresUI();
+                    // Host ke Tamu
+                    broadcastToClients({ type: 'SCORE_BOARD', playersInfo: playersInfo });
+                } else if(conn) {
+                    // Tamu ke Host
+                    conn.send({ type: 'UPDATE_SCORE', score: arcadeScore });
                 }
             }
 
@@ -409,10 +482,43 @@ function checkWin() {
 // ==== Sistem Multiplayer (Daur Ulang dari Game Mengetik) ====
 let isOnline = false;
 let peer = null;
-let conn = null;
+let conn = null; // Menyimpan koneksi ke Host kalau jadi tamu
+let hostConnections = {}; // Menyimpan daftar koneksi Guest (kalau jadi Host)
 let isHost = false;
-let myScore = 0;
-let opponentScore = 0;
+
+// Format playersInfo: { "id_pzl-host12": { name: "Pemain 1", score: 0 }, ... }
+let playersInfo = {}; 
+let myPlayerId = ""; 
+
+// Fungsi update skor di UI Game (digunakan oleh host maupun tamu)
+function updateMultiplayerScoresUI() {
+    const listEl = document.getElementById("multiplayer-scores-list");
+    if (!listEl) return;
+    listEl.innerHTML = "";
+    
+    // Sort pemain by ID biar "Pemain 1, 2, 3" berurutan
+    const playerKeys = Object.keys(playersInfo);
+    playerKeys.sort((a,b) => playersInfo[a].name.localeCompare(playersInfo[b].name));
+    
+    playerKeys.forEach(id => {
+        const info = playersInfo[id];
+        const span = document.createElement("span");
+        span.style.padding = "5px 10px";
+        span.style.background = id === myPlayerId ? "#ffc107" : "#e9ecef";
+        span.style.borderRadius = "5px";
+        span.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+        span.textContent = `${info.name}: ${info.score}`;
+        listEl.appendChild(span);
+    });
+}
+
+function broadcastToClients(data) {
+    for (let id in hostConnections) {
+        if(hostConnections[id] && hostConnections[id].open) {
+            hostConnections[id].send(data);
+        }
+    }
+}
 
 document.getElementById('multiplayer-actions').style.display = 'block';
 
@@ -421,7 +527,7 @@ document.getElementById('host-btn').addEventListener('click', () => {
 });
 
 document.getElementById('join-btn').addEventListener('click', () => {
-    const code = document.getElementById('join-input').value.trim();
+    const code = document.getElementById('join-input').value.trim().toUpperCase();
     if(code) setupMultiplayer(false, code);
 });
 
@@ -433,34 +539,82 @@ function setupMultiplayer(host, code = null) {
     document.getElementById('status-msg').textContent = host ? "Menghubungkan ke server..." : "Mencari ruangan...";
 
     // inisialisasi peerjs
-    peer = new Peer();
+    let roomCode = code;
+    
+    // Reset Data Session Sebelumnya
+    hostConnections = {};
+    playersInfo = {};
+    
+    if (isHost) {
+        roomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
+        myPlayerId = 'pzl-' + roomCode; // ID Host
+        peer = new Peer(myPlayerId);
+        
+        // Host menambahkan dirinya sebagai Pemain 1
+        playersInfo[myPlayerId] = { name: "Pemain 1 (Host)", score: 0 };
+    } else {
+        myPlayerId = 'pzl-guest-' + Math.random().toString(36).substring(2, 7);
+        peer = new Peer(myPlayerId);
+    }
     
     peer.on('open', (id) => {
         showScreen('lobby-screen');
         isOnline = true;
         
         if(isHost) {
-            document.getElementById('lobby-room-code').textContent = id;
+            document.getElementById('lobby-room-code').textContent = roomCode;
             document.getElementById('lobby-status').textContent = "Menunggu pemain lain bergabung...";
-            document.getElementById('lobby-players').textContent = "Pemain: 1 / 2";
+            document.getElementById('lobby-players').textContent = `Pemain: ${Object.keys(playersInfo).length} / 5`;
             document.getElementById('lobby-start-btn').style.display = 'inline-block';
-            document.getElementById('lobby-start-btn').disabled = true;
+            document.getElementById('lobby-start-btn').disabled = true; // Hanya start jika > 1
         } else {
             document.getElementById('lobby-room-code').textContent = code;
             document.getElementById('lobby-status').textContent = "Menghubungkan ke Pemain 1...";
             
-            conn = peer.connect(code);
+            conn = peer.connect('pzl-' + code);
             setupConnection();
         }
     });
 
     if(isHost) {
         peer.on('connection', (connection) => {
-            conn = connection;
-            setupConnection();
-            document.getElementById('lobby-status').textContent = "Pemain 2 Bergabung! Siap untuk mulai!";
-            document.getElementById('lobby-players').textContent = "Pemain: 2 / 2";
-            document.getElementById('lobby-start-btn').disabled = false; // Host sudah bisa start
+            if(Object.keys(playersInfo).length >= 5) {
+                connection.send({ type: 'ERROR', message: "Ruang Penuh" });
+                setTimeout(() => connection.close(), 1000);
+                return;
+            }
+            
+            // Simpan Koneksi Tamu
+            hostConnections[connection.peer] = connection;
+            
+            const nextPlayerNum = Object.keys(playersInfo).length + 1;
+            playersInfo[connection.peer] = { name: `Pemain ${nextPlayerNum}`, score: 0 };
+            
+            document.getElementById('lobby-status').textContent = `Pemain baru bergabung!`;
+            document.getElementById('lobby-players').textContent = `Pemain: ${Object.keys(playersInfo).length} / 5`;
+            
+            if(Object.keys(playersInfo).length > 1) {
+                document.getElementById('lobby-start-btn').disabled = false; // Sudah bisa main
+            }
+            
+            // Broadcast ke semua tamu tentang info lobby saat ini
+            broadcastToClients({
+                type: 'LOBBY_UPDATE',
+                playersCount: Object.keys(playersInfo).length
+            });
+            
+            // Atur pendengar event untuk koneksi anak tamu yang ini
+            connection.on('data', (data) => {
+                if(data.type === 'UPDATE_SCORE') {
+                    playersInfo[connection.peer].score = data.score;
+                    // ... dan broadcast
+                    broadcastToClients({ type: 'SCORE_BOARD', playersInfo: playersInfo });
+                    updateMultiplayerScoresUI();
+                } else if(data.type === 'GAME_OVER') {
+                    handleArcadeGameOver(true);
+                    broadcastToClients({ type: 'GAME_OVER' });
+                }
+            });
         });
     }
 }
@@ -468,42 +622,66 @@ function setupMultiplayer(host, code = null) {
 function setupConnection() {
     conn.on('open', () => {
         if(!isHost) {
-            document.getElementById('lobby-status').textContent = "Berhasil tersambung. Menunggu Host memulai!";
-            document.getElementById('lobby-players').textContent = "Pemain: 2 / 2";
+            document.getElementById('lobby-status').textContent = "Berhasil tersambung. Menunggu Pemain & Host!";
+            document.getElementById('lobby-players').textContent = "Pemain: ? / 5";
         }
     });
-    
+
+    // Ini cuma terjadi di sisi tamu yang menerima broadcast/send Host
     conn.on('data', (data) => {
-        if(data.type === 'START_GAME') {
+        if(data.type === 'LOBBY_UPDATE') {
+            document.getElementById('lobby-players').textContent = `Pemain: ${data.playersCount} / 5`;
+        } else if(data.type === 'START_GAME') {
+            playersInfo = data.playersInfo; // Sinkronkan daftar pemain host
             startOnlineMatch(data.duration, data.emojiParams);
-        } else if(data.type === 'UPDATE_SCORE') {
-            if(isHost) {
-                opponentScore = data.score;
-                document.getElementById('p2-score').textContent = opponentScore;
-            } else {
-                opponentScore = data.score;
-                document.getElementById('p1-score').textContent = opponentScore;
-            }
+        } else if(data.type === 'SCORE_BOARD') {
+            playersInfo = data.playersInfo;
+            // Update UI Score Board lokal tamu
+            updateMultiplayerScoresUI();
+        } else if(data.type === 'GAME_OVER') {
+            // Seseorang memicu gameover di seluruh ruangan
+            handleArcadeGameOver(true);
+        } else if(data.type === 'ERROR') {
+            alert("Gagal konek: " + data.message);
+            disconnectMultiplayer();
+            showScreen('start-screen');
         }
     });
 }
 
 function disconnectMultiplayer() {
     isOnline = false;
+    // Host menutup semua guest
+    for(let id in hostConnections) {
+        if(hostConnections[id]) hostConnections[id].close();
+    }
+    hostConnections = {};
     if(conn) { conn.close(); conn = null; }
     if(peer) { peer.destroy(); peer = null; }
+    playersInfo = {};
 }
 
 function startOnlineGame() {
-    if(!isHost || !conn) return;
+    if(!isHost || Object.keys(hostConnections).length === 0) return;
     
+    // Setup inisial sebelum main
     const randomEmojiSeed = emojisList[Math.floor(Math.random() * emojisList.length)];
     const timeSelected = getSelectedDuration();
     
-    // Beritahu teman online untuk masuk ke game
-    conn.send({ type: 'START_GAME', duration: timeSelected, emojiParams: randomEmojiSeed });
+    // Reset Score All
+    for(let pid in playersInfo) {
+        playersInfo[pid].score = 0;
+    }
     
-    // Mulai dari sisi host
+    // Broadcast agar tamu masuk main match
+    broadcastToClients({
+        type: 'START_GAME',
+        duration: timeSelected,
+        emojiParams: randomEmojiSeed,
+        playersInfo: playersInfo
+    });
+    
+    // Host ikutan main sendirinya
     startOnlineMatch(timeSelected, randomEmojiSeed);
 }
 
@@ -512,16 +690,13 @@ function startOnlineMatch(time, startingEmoji) {
     arcadeTimeLeft = time;
     arcadeLevel = 1;
     arcadeScore = 0;
-    myScore = 0;
-    opponentScore = 0;
     
-    // Setup Tampilan Layar Online
+    // Setup Layar
     document.getElementById('arcade-header').classList.remove('hidden');
     document.getElementById('multiplayer-scores').classList.remove('hidden');
     document.getElementById('gameover-message').classList.add('hidden');
     
-    document.getElementById('p1-score').textContent = "0";
-    document.getElementById('p2-score').textContent = "0";
+    updateMultiplayerScoresUI(); // Taruh layout nilainya duluan
     
     message.classList.add('hidden');
     cols = 3; 
