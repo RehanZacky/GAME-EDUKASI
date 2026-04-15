@@ -623,8 +623,7 @@ function renderQuestion() {
   answerInputEl.disabled = false;
   submitBtnEl.disabled = false;
   answerInputEl.focus();
-
-  setFeedback("");
+  // setFeedback("") dihilangkan dari sini agar tulisan info benar/salah bisa bertahan sesaat
 }
 
 function handleAnswer() {
@@ -632,9 +631,6 @@ function handleAnswer() {
   if (!answer) return;
 
   const isCorrect = answer.toLowerCase() === currentCorrectAnswer.toLowerCase();
-
-  answerInputEl.disabled = true;
-  submitBtnEl.disabled = true;
 
   if (isCorrect) {
     score += SCORE_PER_CORRECT;
@@ -656,11 +652,16 @@ function handleAnswer() {
 
   scoreEl.textContent = score;
 
-  setTimeout(() => {
-    if (remainingTime > 0) {
-      renderQuestion();
-    }
-  }, 1500); // Tunggu 1.5 detik agar tulisan Benar/Salah terbaca anak
+  // Langsung pindah ke pertanyaan berikutnya tanpa delay
+  if (remainingTime > 0) {
+    renderQuestion();
+  }
+
+  // Hilangkan tulisan feedback setelah 1.5 detik (tapi game tetap bisa dilanjutkan)
+  clearTimeout(window.feedbackTimeout);
+  window.feedbackTimeout = setTimeout(() => {
+    setFeedback("");
+  }, 1500);
 }
 
 function tick() {
@@ -783,8 +784,24 @@ function endGame(fromOpponent = false) {
   }
 }
 
-startBtn.addEventListener("click", startGame);
-restartBtn.addEventListener("click", startGame);
+startBtn.addEventListener("click", () => startGame(false));
+
+restartBtn.addEventListener("click", () => {
+  if (isMultiplayer) {
+    // Kembali ke Lobby Room
+    showScreen(lobbyScreen);
+    if (isHost) {
+      document.getElementById("lobby-status").textContent = "Permainan sebelumnya selesai. Menunggu Host memulai...";
+      document.getElementById("lobby-start-btn").disabled = false;
+    } else {
+      document.getElementById("lobby-status").textContent = "Menunggu Host memulai lagi...";
+      document.getElementById("lobby-start-btn").disabled = true;
+    }
+  } else {
+    // Kembali ke Home
+    showScreen(startScreen);
+  }
+});
 
 submitBtnEl.addEventListener("click", handleAnswer);
 answerInputEl.addEventListener("keydown", (e) => {

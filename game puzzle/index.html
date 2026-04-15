@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Puzzle Bongkar Pasang</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Halaman Start -->
+    <div id="start-screen" class="container">
+        <h1>Puzzle Edukasi</h1>
+        <p>Bongkar dan pasang gambar agar menjadi utuh!</p>
+        <br>
+        <button class="main-btn" onclick="showScreen('image-screen')">Mulai Bermain</button>
+    </div>
+
+    <!-- Halaman Pilih Gambar via Preview -->
+    <div id="image-screen" class="container hidden">
+        <h1>Pilih Gambar Puzzle</h1>
+        <p>Klik gambar yang ingin kamu mainkan.</p>
+        <br>
+        <div class="image-grid" id="image-grid">
+            <!-- Data thumbnail gambar akan di-generate via Javascript -->
+        </div>
+        <br><br>
+        <button class="back-btn" onclick="showScreen('start-screen')">Kembali</button>
+    </div>
+
+    <!-- Halaman Game Utama -->
+    <div id="game-screen" class="container hidden">
+        <h1 id="level-title">Permainan Dimulai!</h1>
+        <div id="message" class="hidden">Selamat! Kamu Menang! 🎉</div>
+        
+        <div class="game-area">
+            <div class="pieces-container" id="pieces-container">
+                <!-- Potongan puzzle acak -->
+            </div>
+            <div class="board" id="board">
+                <!-- Papan tempat puzzle -->
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="restart-btn" onclick="initGame()">Ulangi Puzzle</button>
+            <button class="back-btn" onclick="showScreen('image-screen')">Pilih Gambar Lain</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
