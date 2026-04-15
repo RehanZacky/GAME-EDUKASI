@@ -7,7 +7,8 @@ const levelTitle = document.getElementById('level-title');
 const screens = {
     start: document.getElementById('start-screen'),
     image: document.getElementById('image-screen'),
-    game: document.getElementById('game-screen')
+    game: document.getElementById('game-screen'),
+    lobby: document.getElementById('lobby-screen')
 };
 
 // Daftar gambar yang bisa dibuat puzzle
@@ -17,7 +18,7 @@ const images = [
     // { src: 'gambar_puzzle/gambar2.png', label: 'Gambar Dua' }
 ];
 
-let cols = 4;
+let cols = 3;
 let rows = 3;
 let pieceWidth = 200;
 let pieceHeight = 150;
@@ -76,6 +77,125 @@ function handleImageUpload(event) {
         }
         reader.readAsDataURL(file);
     }
+}
+
+// Fungsi untuk menggambar Emoji berukuran raksasa ke dalam format gambar
+function getEmojiImage(emoji) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 600;
+    canvas.height = 600;
+    const ctx = canvas.getContext('2d');
+
+    // Latar belakang gradient untuk emoji
+    const getGradientColor = () => `hsl(${Math.random() * 360}, 80%, 70%)`;
+    const gradient = ctx.createLinearGradient(0, 0, 600, 600);
+    gradient.addColorStop(0, getGradientColor());
+    gradient.addColorStop(1, getGradientColor());
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 600, 600);
+
+    // Render Emoji raksasa
+    ctx.font = '450px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(emoji, 600 / 2, 600 / 2 + 40); // Sedikit diturunkan agar pas di tengah
+
+    // Kembalikan format base64
+    return canvas.toDataURL('image/png');
+}
+
+// Koleksi emoji seru yang jauh lebih banyak
+const emojisList = ['🚀', '🦕', '🌮', '🎨', '🐯', '🤖', '🧸', '🌈', '🐳', '⚽', '🍕', '🌵', '🦄', '🍔', '🎸', '🐢', '🍣', '🐧', '🎁'];
+
+// ==== Sistem Mode Arcade (Seperti Game Mengetik) ====
+let isArcadeMode = false;
+let arcadeLevel = 1;
+let arcadeScore = 0;
+let arcadeTimeLeft = 60;
+let arcadeTimer;
+let currentArcadeEmoji = '';
+
+function getSelectedDuration() {
+    const radio = document.querySelector('input[name="duration"]:checked');
+    return radio ? parseInt(radio.value) : 60;
+}
+
+function updateArcadeUI() {
+    document.getElementById('arcade-level').textContent = arcadeLevel;
+    document.getElementById('arcade-score').textContent = arcadeScore;
+    document.getElementById('arcade-time').textContent = Math.floor(arcadeTimeLeft);
+}
+
+function startArcadeMode() {
+    isArcadeMode = true;
+    isOnline = false;
+    arcadeLevel = 1;
+    arcadeScore = 0;
+    arcadeTimeLeft = getSelectedDuration();
+    
+    document.getElementById('arcade-header').classList.remove('hidden');
+    document.getElementById('multiplayer-scores').classList.add('hidden');
+    document.getElementById('gameover-message').classList.add('hidden');
+    message.classList.add('hidden');
+    
+    // Set 3 baris 3 kolom (3x3 aspect ratio) untuk awal
+    cols = 3; 
+    rows = 3;
+
+    loadNextArcadeEmoji();
+}
+
+function loadNextArcadeEmoji() {
+    currentArcadeEmoji = emojisList[Math.floor(Math.random() * emojisList.length)];
+    const emojiImageUrl = getEmojiImage(currentArcadeEmoji);
+    
+    updateArcadeUI();
+    startGameWithImage(emojiImageUrl, `Emoji ${currentArcadeEmoji}`);
+    
+    // Pastikan header arcade terlihat (tertutup jika memanggil startGameWithImage langsung)
+    document.getElementById('arcade-header').classList.remove('hidden');
+    
+    clearInterval(arcadeTimer);
+    arcadeTimer = setInterval(function() {
+        if(document.getElementById('game-screen').classList.contains('hidden')) {
+            clearInterval(arcadeTimer); // Batalkan jika user keluar (Kembali)
+            return;
+        }
+
+        arcadeTimeLeft--;
+        updateArcadeUI();
+
+        if(arcadeTimeLeft <= 0) {
+            clearInterval(arcadeTimer);
+            handleArcadeGameOver();
+        }
+    }, 1000);
+}
+
+function handleArcadeGameOver() {
+    isArcadeMode = false; // Matikan logic menang arcade
+    document.getElementById('gameover-message').classList.remove('hidden');
+    message.classList.add('hidden');
+    piecesContainer.innerHTML = ''; // Hapus sisa puzzle agar tidak bisa ditarik
+    
+    // Ganti fungsi tombol Ulangi jadi Lanjut Arcade Baru
+    const restartBtn = document.getElementById('restart-btn');
+    restartBtn.textContent = 'Mulai Arcade Baru';
+    restartBtn.onclick = function() {
+        startArcadeMode();
+        restartBtn.textContent = 'Ulangi Puzzle'; // kembalikan text
+        restartBtn.onclick = initGame; // kembalikan logic biasa
+    };
+}
+
+// Mulai game biasa (Mode Santai / Pilih Gambar / Emoji Acak)
+function startEmojiGame() {
+    isArcadeMode = false;
+    document.getElementById('arcade-header').classList.add('hidden');
+    const randomEmoji = emojisList[Math.floor(Math.random() * emojisList.length)];
+    const emojiImageUrl = getEmojiImage(randomEmoji);
+    startGameWithImage(emojiImageUrl, `Emoji ${randomEmoji}`);
 }
 
 function getPolygon(w, h, ox, top, right, bottom, left) {
@@ -248,10 +368,205 @@ function checkWin() {
     });
 
     if (isWin && slots.length === cols * rows) {
-        message.classList.remove('hidden');
-        fireConfetti();
+        if(isArcadeMode){
+            clearInterval(arcadeTimer); // Stop timer sebentar
+            message.textContent = `Hebat! Lanjut ke Level ${arcadeLevel + 1} 🎯`;
+            message.classList.remove('hidden');
+            fireConfetti();
+            
+            // Tambah skor dan sedikit waktu bonus 
+            arcadeScore += 100 * arcadeLevel;
+            myScore = arcadeScore; // Update local online score parameter
+            
+            // Beritahu teman online tentang skor baru kita
+            if(isOnline && conn) {
+                conn.send({ type: 'UPDATE_SCORE', score: myScore });
+                if(isHost) {
+                    document.getElementById('p1-score').textContent = myScore;
+                } else {
+                    document.getElementById('p2-score').textContent = myScore;
+                }
+            }
+
+            arcadeTimeLeft += 5; // Kurangi bonus durasi untuk arcade 2x3 agar imbang
+            arcadeLevel++;
+            updateArcadeUI();
+
+            // Lanjut ke puzzle baru setelah 2.5 detik
+            setTimeout(() => {
+                message.classList.add('hidden');
+                message.textContent = 'Selamat! Kamu Menang! 🎉'; // Kembalikan pesan aslinya
+                loadNextArcadeEmoji();
+            }, 2500);
+
+        } else {
+            message.classList.remove('hidden');
+            fireConfetti();
+        }
     }
 }
+
+// ==== Sistem Multiplayer (Daur Ulang dari Game Mengetik) ====
+let isOnline = false;
+let peer = null;
+let conn = null;
+let isHost = false;
+let myScore = 0;
+let opponentScore = 0;
+
+document.getElementById('multiplayer-actions').style.display = 'block';
+
+document.getElementById('host-btn').addEventListener('click', () => {
+    setupMultiplayer(true);
+});
+
+document.getElementById('join-btn').addEventListener('click', () => {
+    const code = document.getElementById('join-input').value.trim();
+    if(code) setupMultiplayer(false, code);
+});
+
+function setupMultiplayer(host, code = null) {
+    if(peer) peer.destroy();
+    isHost = host;
+    
+    // Ganti status UI
+    document.getElementById('status-msg').textContent = host ? "Menghubungkan ke server..." : "Mencari ruangan...";
+
+    // inisialisasi peerjs
+    peer = new Peer();
+    
+    peer.on('open', (id) => {
+        showScreen('lobby-screen');
+        isOnline = true;
+        
+        if(isHost) {
+            document.getElementById('lobby-room-code').textContent = id;
+            document.getElementById('lobby-status').textContent = "Menunggu pemain lain bergabung...";
+            document.getElementById('lobby-players').textContent = "Pemain: 1 / 2";
+            document.getElementById('lobby-start-btn').style.display = 'inline-block';
+            document.getElementById('lobby-start-btn').disabled = true;
+        } else {
+            document.getElementById('lobby-room-code').textContent = code;
+            document.getElementById('lobby-status').textContent = "Menghubungkan ke Pemain 1...";
+            
+            conn = peer.connect(code);
+            setupConnection();
+        }
+    });
+
+    if(isHost) {
+        peer.on('connection', (connection) => {
+            conn = connection;
+            setupConnection();
+            document.getElementById('lobby-status').textContent = "Pemain 2 Bergabung! Siap untuk mulai!";
+            document.getElementById('lobby-players').textContent = "Pemain: 2 / 2";
+            document.getElementById('lobby-start-btn').disabled = false; // Host sudah bisa start
+        });
+    }
+}
+
+function setupConnection() {
+    conn.on('open', () => {
+        if(!isHost) {
+            document.getElementById('lobby-status').textContent = "Berhasil tersambung. Menunggu Host memulai!";
+            document.getElementById('lobby-players').textContent = "Pemain: 2 / 2";
+        }
+    });
+    
+    conn.on('data', (data) => {
+        if(data.type === 'START_GAME') {
+            startOnlineMatch(data.duration, data.emojiParams);
+        } else if(data.type === 'UPDATE_SCORE') {
+            if(isHost) {
+                opponentScore = data.score;
+                document.getElementById('p2-score').textContent = opponentScore;
+            } else {
+                opponentScore = data.score;
+                document.getElementById('p1-score').textContent = opponentScore;
+            }
+        }
+    });
+}
+
+function disconnectMultiplayer() {
+    isOnline = false;
+    if(conn) { conn.close(); conn = null; }
+    if(peer) { peer.destroy(); peer = null; }
+}
+
+function startOnlineGame() {
+    if(!isHost || !conn) return;
+    
+    const randomEmojiSeed = emojisList[Math.floor(Math.random() * emojisList.length)];
+    const timeSelected = getSelectedDuration();
+    
+    // Beritahu teman online untuk masuk ke game
+    conn.send({ type: 'START_GAME', duration: timeSelected, emojiParams: randomEmojiSeed });
+    
+    // Mulai dari sisi host
+    startOnlineMatch(timeSelected, randomEmojiSeed);
+}
+
+function startOnlineMatch(time, startingEmoji) {
+    isArcadeMode = true;
+    arcadeTimeLeft = time;
+    arcadeLevel = 1;
+    arcadeScore = 0;
+    myScore = 0;
+    opponentScore = 0;
+    
+    // Setup Tampilan Layar Online
+    document.getElementById('arcade-header').classList.remove('hidden');
+    document.getElementById('multiplayer-scores').classList.remove('hidden');
+    document.getElementById('gameover-message').classList.add('hidden');
+    
+    document.getElementById('p1-score').textContent = "0";
+    document.getElementById('p2-score').textContent = "0";
+    
+    message.classList.add('hidden');
+    cols = 3; 
+    rows = 3; // 3x3 style yang diminta user
+    
+    // Setel puzzle menggunakan emoji sama dengan lawannya
+    currentArcadeEmoji = startingEmoji;
+    
+    const emojiImageUrl = getEmojiImage(currentArcadeEmoji);
+    startGameWithImage(emojiImageUrl, `Emoji ${currentArcadeEmoji}`);
+    
+    document.getElementById('arcade-header').classList.remove('hidden');
+    
+    clearInterval(arcadeTimer);
+    arcadeTimer = setInterval(function() {
+        if(document.getElementById('game-screen').classList.contains('hidden')) {
+            clearInterval(arcadeTimer); 
+            return;
+        }
+
+        arcadeTimeLeft--;
+        updateArcadeUI();
+
+        if(arcadeTimeLeft <= 0) {
+            clearInterval(arcadeTimer);
+            handleArcadeGameOver();
+        }
+    }, 1000);
+}
+
+// ==== Akhir MultiPlayer ====
+
+
+function stopAllTimersOnExit() {
+    clearInterval(arcadeTimer);
+    isArcadeMode = false;
+    document.getElementById('arcade-header').classList.add('hidden');
+}
+
+// Override showScreen to stop timers
+const originalShowScreen = showScreen;
+showScreen = function(screenId) {
+    if(screenId !== 'game-screen') stopAllTimersOnExit();
+    originalShowScreen(screenId);
+};
 
 function fireConfetti() {
     const container = document.getElementById('confetti-container');

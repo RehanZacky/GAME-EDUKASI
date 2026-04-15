@@ -1,0 +1,82 @@
+:root {
+  --bg-a: #fff8e7;
+  --bg-b: #dff7ff;
+  --card: #ffffff;
+  --text: #1e293b;
+  --muted: #475569;
+  --primary: #ff7f50;
+  --primary-hover: #ff6b3d;
+  --success: #16a34a;
+  --danger: #dc2626;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at 15% 20%, var(--bg-a), transparent 45%),
+    radial-gradient(circle at 85% 10%, #e9ffe7, transparent 40%),
+    linear-gradient(135deg, var(--bg-b), #fffaf0);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.app {
+  width: min(900px, 100%);
+}
+
+.screen {
+  background: var(--card);
+  border-radius: 20px;
+  box-shadow: 0 14px 30px rgba(30, 41, 59, 0.15);
+  padding: 24px;
+  text-align: center;
+  border: 6px solid #ff7f50;
+  animation: borderRainbow 6s linear infinite;
+}
+
+@keyframes borderRainbow {
+  0% { border-color: #ff7f50; }
+  33% { border-color: #47b8ff; }
+  66% { border-color: #4ade80; }
+  100% { border-color: #ff7f50; }
+}
+
+.game-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2) !important;
+}
+
+.primary-btn {
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.primary-btn:hover { background: var(--primary-hover); transform: translateY(-2px) scale(1.02); }
+
+.secondary-btn {
+  border: none;
+  background: #3b82f6;
+  color: #fff;
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.secondary-btn:hover { background: #2563eb; transform: translateY(-2px) scale(1.02); }

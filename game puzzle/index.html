@@ -8,21 +8,59 @@
 </head>
 <body>
     <div id="confetti-container"></div>
+    
     <!-- Halaman Start -->
     <div id="start-screen" class="container">
         <h1>Puzzle Edukasi</h1>
-        <p>Bongkar dan pasang gambar agar menjadi utuh!</p>
-        <br>
-        <button class="main-btn" onclick="showScreen('image-screen')">Mulai Bermain</button>
+        <p>Bongkar dan pasang gambar emoji secepat mungkin sebelum waktu habis!</p>
+        
+        <p style="margin-top: 15px; font-weight: bold;">Pilih Durasi Waktu (Untuk Arcade):</p>
+        <div style="margin-bottom: 20px;">
+          <label style="margin: 0 10px;"><input type="radio" name="duration" value="60" checked /> 60 Detik</label>
+          <label style="margin: 0 10px;"><input type="radio" name="duration" value="180" /> 3 Menit</label>
+          <label style="margin: 0 10px;"><input type="radio" name="duration" value="300" /> 5 Menit</label>
+        </div>
+
+        <button class="main-btn" style="background-color: #ffc107; color: black;" onclick="startArcadeMode()">⏱️ Mulai Main Sendiri (Arcade)</button>
+        <br><br>
+        
+        <div style="background: rgba(255,255,255,0.5); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <h3>Bermain Online</h3>
+            <p id="status-msg" style="color: #666; font-size: 0.9em;">Memuat koneksi multiplayer...</p>
+            <div id="multiplayer-actions" style="display: none; margin-top: 10px;">
+                <button id="host-btn" class="main-btn" style="background-color: #28a745; font-size: 1em; padding: 10px 15px;">Buat Ruang</button>
+                <div style="margin: 10px 0;">
+                    <input type="text" id="join-input" placeholder="Kode Ruang..." style="padding: 10px; border-radius: 5px; border: 1px solid #ccc; width: 120px;">
+                    <button id="join-btn" class="main-btn" style="background-color: #007bff; font-size: 1em; padding: 10px 15px;">Gabung</button>
+                </div>
+            </div>
+        </div>
+
+        <button class="main-btn" style="font-size: 1em; padding: 10px 20px; background-color: #17a2b8;" onclick="showScreen('image-screen')">Pilih Gambar Latihan (Santai)</button>
+    </div>
+
+    <!-- Halaman Ruang Lobby Online -->
+    <div id="lobby-screen" class="container hidden">
+        <h2>Lobby Online</h2>
+        <div style="margin: 20px 0;">
+            <p>Kode Ruang Kamu:</p>
+            <h1 id="lobby-room-code" style="color: #28a745; background: #fff; padding: 10px; border-radius: 10px; display: inline-block;">---</h1>
+        </div>
+        <p id="lobby-status">Menyiapkan ruangan...</p>
+        <p id="lobby-players" style="font-weight: bold; margin: 15px 0;">Pemain: 1</p>
+        <button id="lobby-start-btn" class="main-btn" style="background-color: #ffc107; color: black; display: none;" onclick="startOnlineGame()">Mulai Pertandingan</button>
+        <br><br>
+        <button class="back-btn" onclick="disconnectMultiplayer(); showScreen('start-screen');">Keluar dari Ruang</button>
     </div>
 
     <!-- Halaman Pilih Gambar via Preview -->
     <div id="image-screen" class="container hidden">
         <h1>Pilih Gambar Puzzle</h1>
-        <p>Klik gambar di bawah atau mainkan dengan gambarmu sendiri!</p>
+        <p>Klik gambar di bawah, mainkan dengan emoji, atau gambarmu sendiri!</p>
         <br>
         <input type="file" id="upload-image" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
         <label for="upload-image" class="main-btn" style="cursor: pointer; display: inline-block; font-size: 1.2em; padding: 10px 20px;">+ Upload Gambar Sendiri</label>
+        <button class="main-btn" style="background-color: #ffc107; color: black; font-size: 1.2em; padding: 10px 20px; display: inline-block; margin-left: 10px;" onclick="startEmojiGame()">🤩 Mainkan Emoji Acak</button>
         <br><br>
         <div class="image-grid" id="image-grid">
             <!-- Data thumbnail gambar akan di-generate via Javascript -->
@@ -33,8 +71,19 @@
 
     <!-- Halaman Game Utama -->
     <div id="game-screen" class="container hidden">
+        <div id="arcade-header" class="hidden" style="display: flex; justify-content: space-between; font-size: 1.5em; font-weight: bold; background: #333; color: #fff; padding: 10px 20px; border-radius: 10px; margin-bottom: 20px;">
+            <div style="color: #ffc107;">Level: <span id="arcade-level">1</span></div>
+            <div style="color: #28a745;">Skor: <span id="arcade-score">0</span></div>
+            <div style="color: #dc3545;">Waktu: <span id="arcade-time">60</span>s</div>
+        </div>
+
         <h1 id="level-title">Permainan Dimulai!</h1>
         <div id="message" class="hidden">Selamat! Kamu Menang! 🎉</div>
+        <div id="gameover-message" class="hidden" style="color: #dc3545; font-size: 2em; font-weight: bold; margin-bottom: 20px;">Waktu Habis! 😢</div>
+        
+        <div id="multiplayer-scores" class="hidden" style="margin-bottom: 20px; font-weight: bold; padding: 10px; background: rgba(255,255,255,0.7); border-radius: 10px;">
+            Pemain 1: <span id="p1-score">0</span> | Pemain 2: <span id="p2-score">0</span>
+        </div>
         
         <div class="game-area">
             <div class="pieces-container" id="pieces-container">
@@ -46,10 +95,11 @@
         </div>
 
         <div class="controls">
-            <button id="restart-btn" onclick="initGame()">Ulangi Puzzle</button>
-            <button class="back-btn" onclick="showScreen('image-screen')">Pilih Gambar Lain</button>
+            <button id="restart-btn" class="main-btn" onclick="initGame()">Ulangi Puzzle</button>
+            <button class="back-btn" onclick="disconnectMultiplayer(); showScreen('start-screen')">Pilih Gambar Lain / Keluar</button>
         </div>
     </div>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beranda Game Edukasi</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="background-ornaments"></div>
+  <main class="app">
+    <section class="screen active" style="padding: 40px; border: 6px solid #ff7f50;">
+      <h1 style="font-size: 2.5em; color: #ff7f50; margin-bottom: 10px;">🌟 Portal Game Edukasi 🌟</h1>
+      <p style="font-size: 1.2em; color: var(--muted); margin-bottom: 30px;">Pilih permainan seru di bawah ini untuk belajar sambil bermain!</p>
+      
+      <div class="games-grid" style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+        
+        <!-- Kartu Game Mengetik -->
+        <a href="game mengetik/index.html" class="game-card" style="text-decoration: none; color: inherit; width: 300px; background: #fff8e7; border: 3px solid #ffb347; border-radius: 15px; padding: 25px; transition: transform 0.3s, box-shadow 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <div style="font-size: 4em; margin-bottom: 15px;">⌨️</div>
+          <h2 style="margin: 0 0 10px 0; color: #1e293b;">Game Mengetik</h2>
+          <p style="margin: 0; color: var(--muted); font-size: 0.95em;">Belajar mengetik nama hewan, makanan, luar angkasa, dan lainnya dengan cepat!</p>
+          <div class="primary-btn" style="margin-top: 20px; text-align: center; display: block; background: #ff7f50; width: 100%;">Mainkan Mengetik</div>
+        </a>
+
+        <!-- Kartu Game Puzzle -->
+        <a href="game puzzle/index.html" class="game-card" style="text-decoration: none; color: inherit; width: 300px; background: #dff7ff; border: 3px solid #47b8ff; border-radius: 15px; padding: 25px; transition: transform 0.3s, box-shadow 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <div style="font-size: 4em; margin-bottom: 15px;">🧩</div>
+          <h2 style="margin: 0 0 10px 0; color: #1e293b;">Game Puzzle</h2>
+          <p style="margin: 0; color: var(--muted); font-size: 0.95em;">Bongkar dan pasang potongan puzzle gambar animasi & emoji kesukaanmu!</p>
+          <div class="secondary-btn" style="margin-top: 20px; text-align: center; display: block; width: 100%;">Mainkan Puzzle</div>
+        </a>
+
+      </div>
+    </section>
+  </main>
+</body>
+</html>
